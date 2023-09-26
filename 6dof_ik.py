@@ -18,6 +18,8 @@ a1, a2, a3 = 0, 250, 700
 α1, α2, α3 = 0, np.pi / 2 , 0
 d1, d2, d3 = 400, 0, 0
    
+import numpy as np
+
 # Define lengths of segments based on the Denavit-Hartenberg (DH) parameters.
 d1 = 400  # Length from base to shoulder.
 a2 = 250  # Length from shoulder to elbow.
@@ -61,7 +63,29 @@ def calculate_azimuth(base_rotation_values):
 
 base_rotation_values = np.linspace(0, 2*np.pi, num=1000)
 azimuth_data = calculate_azimuth(base_rotation_values)
-elevation_data = calculate_elevation()    
+elevation_data = calculate_elevation()
+
+# Extract the joint angles and azimuth/elevation angles from the data
+base_angles, azimuths = zip(*azimuth_data)
+shoulder_angles, elevations = zip(*elevation_data)
+
+# Fit first-order polynomials
+base_poly_coeff = np.polyfit(azimuths, base_angles, 1)
+shoulder_poly_coeff = np.polyfit(elevations, shoulder_angles, 1)
+
+# We now have the coefficients of the first-order polynomials
+# base_angle = base_poly_coeff[0]*azimuth + base_poly_coeff[1]
+# shoulder_angle = shoulder_poly_coeff[0]*elevation + shoulder_poly_coeff[1]
+
+
+def calculate_base_angle(azimuth):
+    return base_poly_coeff[0]*azimuth + base_poly_coeff[1]
+
+
+def calculate_shoulder_angle(elevation):
+    return shoulder_poly_coeff[0]*elevation + shoulder_poly_coeff[1]
+
+#----------------------------------updated sofar---------------------------
 
 
 def find_best_solution(poly, value, joint_limits, curr_joint_angle):
