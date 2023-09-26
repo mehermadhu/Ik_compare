@@ -12,81 +12,58 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 
-# Constants
-a1 = a2 = 1  # Equal link lengths
 
 # Assume these values as DH parameters of KUKA R650
 a1, a2, a3 = 0, 250, 700
 α1, α2, α3 = 0, np.pi / 2 , 0
 d1, d2, d3 = 400, 0, 0
+   
+# Define lengths of segments based on the Denavit-Hartenberg (DH) parameters.
+d1 = 400  # Length from base to shoulder.
+a2 = 250  # Length from shoulder to elbow.
+a3 = 700  # Length from elbow to wrist.
 
 
-fig, ax = plt.subplots()  # Preparing the plot
+def calculate_position(base_angle, shoulder_angle, elbow_angle):
+    x = d1*np.cos(base_angle) + a2*np.cos(shoulder_angle) + a3*np.cos(elbow_angle) # x-coordinate
+    y = d1*np.sin(base_angle) + a2*np.sin(shoulder_angle) + a3*np.sin(elbow_angle) # y-coordinate
+    z = d1 + a2*np.cos(shoulder_angle) + a3*np.cos(elbow_angle)  # z-coordinate
+    return x, y, z
 
-ax.set_xlim([-2,2]) #Setting x-axis limits
-ax.set_ylim([-2,2]) #Setting y-axis limits
-line, = ax.plot([],[]) #Creating a line object to be updated
 
-# Draw Function
-def draw(theta1, theta2):
-    x = [0, a1*np.cos(theta1), a1*np.cos(theta1) + a2*np.cos(theta1 + theta2)]
-    y = [0, a1*np.sin(theta1), a1*np.sin(theta1) + a2*np.sin(theta1 + theta2)]
+def calculate_elevation():
+    theta_values = np.linspace(0, np.pi, num=1000)  # Range of shoulder joint rotation angles
 
-    line.set_data(x, y) #Updating the line object
-    plt.draw()
-    plt.pause(0.01) #Pause for 0.01 seconds
+    theta_phi_list = []  # List to store tuple of joint angle and elevation angle
 
-    plt.title('Robot Arm')
-    plt.grid(True)
+    for theta in theta_values:
+        x, y, z = calculate_position(0, theta, theta)
 
-def IK(x, y):
-    d = (x**2 + y**2 - a1**2 - a2**2) / (2 * a1 * a2)
+        xy_distance = np.sqrt(x**2 + y**2)
+        elevation_angle = np.arctan2(z, xy_distance)
 
-    if abs(d) > 1:
-        print("The target is not reachable.")
-        return None, None
+        theta_phi_list.append((theta, elevation_angle))
 
-    theta2 = np.arccos(d) #theta2 is deduced from cos(theta2)
-    theta1 = np.arctan2(y, x) - np.arctan2(a2 * np.sin(theta2), a1 + a2 * np.cos(theta2)) #theta1 is deduced from sin(theta1)
+    return theta_phi_list
 
-    return theta1, theta2 #Returning the angles in radians
-def move_in_straight_line():
-    x_values = np.linspace(0.1, (a1 + a2), num=50)
-    y_test = 0
-    joint_angles_list = []
-    radii = []
 
-    for x_test in x_values:
-        theta1_test, theta2_test = IK(x_test, y_test)
-        if theta1_test is None:
-            continue
-        joint_angles_list.append((theta1_test, theta2_test))
+def calculate_azimuth(base_rotation_values):
+    base_azimuth_list = []  # List to store tuple of base joint angle and azimuth angle
 
-        r = np.sqrt(x_test**2 + y_test**2)  # Calculate the radius
-        radii.append(r)
+    for base_rotation in base_rotation_values:
+        x, y, z = calculate_position(base_rotation, 0, 0)
+        
+        azimuth = np.arctan2(y, x)
+        base_azimuth_list.append((base_rotation, azimuth))
 
-        draw(theta1_test, theta2_test)
-    
-    return joint_angles_list, radii
+    return base_azimuth_list
 
-def move_in_circular_path(radius):
-    angle_values = np.linspace(-np.pi/2,np.pi/2, num=100)
-    thetas = []
-    azimuths = []
 
-    for angle in angle_values:
-        theta1 = angle
-        theta2 = 0  
-        x = radius*np.cos(theta1)
-        y = radius*np.sin(theta1)
-        thetas.append((theta1, theta2))  
+base_rotation_values = np.linspace(0, 2*np.pi, num=1000)
+azimuth_data = calculate_azimuth(base_rotation_values)
+elevation_data = calculate_elevation()    
 
-        azimuth = np.arctan2(y, x) # Calculate the azimuth angle
-        azimuths.append(azimuth)
 
-        draw(theta1, theta2)
-    return thetas, azimuths
-    
 def find_best_solution(poly, value, joint_limits, curr_joint_angle):
     roots = np.roots(poly - value)
     real_roots = roots[~np.iscomplex(roots)].real
