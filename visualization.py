@@ -42,4 +42,3 @@ def plot_data(original_x, original_y, fit_x, fit_y,xlabel,ylabel):
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.legend()
-    plt.show()

@@ -8,13 +8,18 @@ import random
 import time
 from memory_profiler import memory_usage
 
-show_robot  = False
+show_robot  = True
+show_robot_azimuth = True
+show_robot_elev =   True
+show_robot_radius = True
 show_plot = False #'azimuth', 'elevation', 'radius1', 'radius2'
-debug = True
+debug = False
 show_ik = False
-compute_complexity = True
-fig = plt.figure()
-ax = fig.add_subplot(111,projection='3d')
+compute_complexity = False
+plot_show = True
+if  plot_show:
+    fig = plt.figure()
+    ax = fig.add_subplot(111,projection='3d')
 
 # Define robot
 manipulator = Robot()
@@ -33,7 +38,7 @@ calib_start_time = time.time()
 calib_before_memory = memory_usage(-1, interval=0.1, timeout=1)[0]
 _azimuth_joint_angles,_azimuth_wrist_centre_positions = manipulator.move_around()
 
-if show_robot:
+if show_robot_azimuth:
 	_joint_positions = manipulator.calculate_joint_positions(_azimuth_joint_angles)
 	viz.plot_robot_arm(_joint_positions,ax)
 
@@ -84,16 +89,14 @@ if show_plot == 'radius1':
 	viz.plot_data(radial_distances,rad_joint_angles[:, 1], x_joint1, y_joint1,'shoulder_angle','radius')
 if show_plot == 'radius2':
 	#Plot original data and the fit for joint2
-	viz.plot_data(radial_distances,rad_joint_angles[:,2], x_joint2, y_joint2,'shoulder_angle','radius')
-	
+	viz.plot_data(radial_distances,rad_joint_angles[:,2], x_joint2, y_joint2,'elbow_angle','radius')
+if show_robot_radius:
+	_joint_positions = manipulator.calculate_joint_positions(rad_joint_angles)
+	viz.plot_robot_arm(_joint_positions,ax)
+
 #Generate elevation model
 # joint angles and wrist centre position for elevation
 elevation_joint_angles, elevation_wrist_centre_positions = manipulator.move_up()
-
-if show_robot:
-	_joint_positions = manipulator.calculate_joint_positions(rad_joint_angles)
-	viz.plot_robot_arm(_joint_positions,ax)
-	
 
 # compute elevation angles
 elevation_angles = utils.elevation_angle_calculation(elevation_wrist_centre_positions)
@@ -113,7 +116,7 @@ y = poly(x)
 if show_plot == 'elevation':
 	# plot original data
 	viz.plot_data(elevation_joint_angles[:, 1], elevation_angles,x,y,'shoulder_angle','elevation')
-if show_robot:
+if show_robot_elev:
 	_joint_positions = manipulator.calculate_joint_positions(elevation_joint_angles)
 	viz.plot_robot_arm(_joint_positions,ax)    
 # time stamp
@@ -175,5 +178,5 @@ if compute_complexity:
     print(f"Memory used to solve: {solve_after_memory - solve_before_memory} MiB")
     print(f"Execution Time to calibrate: {calib_end_time - calib_start_time} seconds")
     print(f"Memory used to calibrate: {calib_after_memory - calib_before_memory} MiB")
-if show_ik:
+if plot_show:
     plt.show()
